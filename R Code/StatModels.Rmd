@@ -1,0 +1,74 @@
+---
+title: "Statistical models - Number of candidates"
+author: "Federico Acosta y Lara"
+date: "10/4/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load packages
+```{r}
+library(plm)
+library(fixest)
+library(lmtest)
+```
+
+
+# Import Data
+```{r}
+
+Data <- read.csv2(here::here("Data", "Elect_Coord_Dataset.csv"))
+
+```
+
+
+#Número de candidatos
+#Modelos poisson de paneles, con efectos fijos por departamento
+```{r}
+
+MNC1 <- fepois (Nro_Candidatos ~ Reforma, data = Data, panel.id = c('Departamento'))
+MNC2 <- fepois (Nro_Candidatos ~ Reforma + Incumbente, data = Data, panel.id = c('Departamento'))
+MNC3<- fepois (Nro_Candidatos ~ Reforma + Incumbente + Volatilidad_INTER + Volatilidad_INTRA, data = Data, panel.id = c('Departamento'))
+MNC4<- fepois (Nro_Candidatos ~ Reforma + Incumbente + CompCandidato + CompPartido, data = Data, panel.id =Departamento)
+MNC5<- fepois (Nro_Candidatos ~ Reforma + Incumbente + Volatilidad_INTER + Volatilidad_INTRA + CompCandidato + CompPartido, data = Data, panel.id =Departamento)
+
+summary(MNC1)
+summary(MNC2)
+summary(MNC3)
+summary(MNC4) 
+summary(MNC5)
+
+```
+
+
+#Número efectivo de candidatos
+#Modelos lineales de paneles con efectos fijos por departamento
+```{r}
+
+ModNEC1 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Nro_Partidos + Nro_Candidatos, data=Data, model = "within", effect ="individual", index = c("Departamento", "Año"))
+
+ModNEC2 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente + Nro_Partidos + Nro_Candidatos, data=Data, model = "within", effect ="individual", index = c("Departamento", "Año"))
+
+ModNEC3 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente + Volatilidad_INTER + Volatilidad_INTRA +Nro_Partidos+ Nro_Candidatos, data=Data, model = "within", effect ="individual", index = c("Departamento", "Año"))
+
+ModNEC4 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente  + CompCandidato + CompPartido + Nro_Candidatos + Nro_Partidos, data=Data, model = "within", effect ="individual", index = c("Departamento"))
+
+ModNEC5 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente + Volatilidad_INTER + Volatilidad_INTRA + CompCandidato + CompPartido + Nro_Candidatos + Nro_Partidos, data=Data, model = "within", effect ="individual", index = c("Departamento"))
+
+jtools::export_summs(ModNEC1, ModNEC2, ModNEC3, ModNEC4, ModNEC5)
+
+#Estimaciones con errores robustos
+coeftest(ModNEC1, vcov.=vcovHC(ModNEC1, type="HC1"))
+coeftest(ModNEC2, vcov.=vcovHC(ModNEC2, type="HC1"))
+coeftest(ModNEC3, vcov.=vcovHC(ModNEC3, type="HC1"))
+coeftest(ModNEC4, vcov.=vcovHC(ModNEC4, type="HC1"))
+coeftest(ModNEC5, vcov.=vcovHC(ModNEC5, type="HC1"))
+
+```
+
+
