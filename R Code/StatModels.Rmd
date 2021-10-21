@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Load packages
 ```{r}
 library(plm)
+library(sandwich)
 library(fixest)
 library(lmtest)
 ```
@@ -50,17 +51,19 @@ summary(MNC5)
 #Modelos lineales de paneles con efectos fijos por departamento
 ```{r}
 
-ModNEC1 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Nro_Partidos + Nro_Candidatos, data=Data, model = "within", effect ="individual", index = c("Departamento", "Año"))
+ModNEC1 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma, data=Data, model = "within", effect ="individual", index = c("Departamento", "Año"))
 
-ModNEC2 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente + Nro_Partidos + Nro_Candidatos, data=Data, model = "within", effect ="individual", index = c("Departamento", "Año"))
+ModNEC2 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente, data=Data, model = "within", effect ="individual", index = c("Departamento", "Año"))
 
-ModNEC3 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente + Volatilidad_INTER + Volatilidad_INTRA +Nro_Partidos+ Nro_Candidatos, data=Data, model = "within", effect ="individual", index = c("Departamento", "Año"))
+ModNEC3 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente + Volatilidad_INTER + Volatilidad_INTRA, data=Data, model = "within", effect ="individual", index = c("Departamento", "Año"))
 
-ModNEC4 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente  + CompCandidato + CompPartido + Nro_Candidatos + Nro_Partidos, data=Data, model = "within", effect ="individual", index = c("Departamento"))
+ModNEC4 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente  + CompCandidato + CompPartido, data=Data, model = "within", effect ="individual", index = c("Departamento"))
 
-ModNEC5 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente + Volatilidad_INTER + Volatilidad_INTRA + CompCandidato + CompPartido + Nro_Candidatos + Nro_Partidos, data=Data, model = "within", effect ="individual", index = c("Departamento"))
+ModNEC5 <- plm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente + Volatilidad_INTER + Volatilidad_INTRA + CompCandidato + CompPartido, data=Data, model = "within", effect ="individual", index = c("Departamento"))
 
 jtools::export_summs(ModNEC1, ModNEC2, ModNEC3, ModNEC4, ModNEC5)
+
+
 
 #Estimaciones con errores robustos
 coeftest(ModNEC1, vcov.=vcovHC(ModNEC1, type="HC1"))
@@ -69,6 +72,55 @@ coeftest(ModNEC3, vcov.=vcovHC(ModNEC3, type="HC1"))
 coeftest(ModNEC4, vcov.=vcovHC(ModNEC4, type="HC1"))
 coeftest(ModNEC5, vcov.=vcovHC(ModNEC5, type="HC1"))
 
+
+```
+
+Tests 
+```{r}
+
+hist(ModNEC5$residuals)
+
+# Jarque-Bera -> H0:normalidad
+tseries::jarque.bera.test(ModNEC5$residuals) 
+
+# Breusch-Pagan -> H0: Homocedasticidad
+bptest(ModNEC5)
+
+# Ramsey -> H0: correctamente especificado
+resettest(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente + Volatilidad_INTER + 
+                  Volatilidad_INTRA + CompCandidato + CompPartido, data=Data) 
+
+# VIF -> <5, no multicolinealidad
+vif(lm(log(Nro_Efectivo_Candidatos) ~ Reforma + Incumbente + Volatilidad_INTER + Volatilidad_INTRA + CompCandidato + CompPartido, data=Data))
+
+
+
+
+```
+
+Tablas
+```{r}
+Antes <- Data[Data$Reforma==0,]
+Luego <- Data[Data$Reforma==1,]
+
+
+min(Antes$Nro_Efectivo_Candidatos)
+mean(Antes$Nro_Efectivo_Candidatos)
+median(Antes$Nro_Efectivo_Candidatos)
+sd(Antes$Nro_Efectivo_Candidatos)
+max(Antes$Nro_Efectivo_Candidatos)
+
+min(Luego$Nro_Efectivo_Candidatos)
+mean(Luego$Nro_Efectivo_Candidatos)
+median(Luego$Nro_Efectivo_Candidatos)
+sd(Luego$Nro_Efectivo_Candidatos)
+max(Luego$Nro_Efectivo_Candidatos)
+
+length(Luego$Nro_Efectivo_Candidatos)
+sum(Luego$Nro_Efectivo_Candidatos <= 4)
+sum(Luego$Nro_Efectivo_Candidatos >= 4.2)
+
+citation("ggplot2")
 ```
 
 
